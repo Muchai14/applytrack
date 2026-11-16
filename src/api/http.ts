@@ -40,7 +40,15 @@ export function createHttpApi(base: string): Api {
           ? `/api/applications/${encodeURIComponent(id)}`
           : "/api/applications",
         id ? "PATCH" : "POST",
-        input,
+        {
+          company: input.company,
+          role: input.role,
+          category: input.category,
+          channel: input.channel,
+          status: input.status,
+          applied_at: input.applied_at,
+          decision_at: input.decision_at,
+        },
       ),
     remove: (id) =>
       request<void>(`/api/applications/${encodeURIComponent(id)}`, "DELETE"),

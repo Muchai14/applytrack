@@ -1,0 +1,9 @@
+{
+  "drill": "dev image rollback",
+  "broken_candidate_dashboard_status": 503,
+  "restored_dashboard_status": 200,
+  "records_before": 3,
+  "records_after": 3,
+  "database_preserved": true,
+  "restored_image": "applytrack-api:known-good"
+}

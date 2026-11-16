@@ -1,0 +1,10 @@
+.git
+node_modules
+dist
+.env*
+.secrets
+*.tar.gz
+backend/.pytest_cache
+backend/**/__pycache__
+playwright-report
+test-results

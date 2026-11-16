@@ -1,0 +1,15 @@
+route:
+  receiver: responder
+  group_by: [journey]
+  group_wait: 5s
+  group_interval: 1m
+  repeat_interval: 4h
+receivers:
+  - name: responder
+    webhook_configs:
+      - url: http://runtime:9000/alerts
+        send_resolved: false
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: local-demo-ops-token-change-before-hosting

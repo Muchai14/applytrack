@@ -1,0 +1,18 @@
+groups:
+  - name: user-impact
+    rules:
+      - alert: DashboardUnavailable
+        expr: applytrack_dashboard_available == 0
+        for: 30s
+        labels: {severity: page, journey: dashboard}
+        annotations:
+          summary: Users cannot load a valid dashboard
+      - alert: DashboardErrorRate
+        expr: |
+          (sum(rate(applytrack_http_requests_total{route="/api/dashboard",status=~"5.."}[5m]))
+          / clamp_min(sum(rate(applytrack_http_requests_total{route="/api/dashboard"}[5m])), 0.001) > 0.05)
+          and sum(increase(applytrack_http_requests_total{route="/api/dashboard"}[5m])) >= 5
+        for: 1m
+        labels: {severity: page, journey: dashboard}
+        annotations:
+          summary: More than 5 percent of dashboard requests fail

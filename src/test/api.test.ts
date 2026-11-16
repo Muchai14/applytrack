@@ -111,3 +111,26 @@ describe("HTTP adapter", () => {
     fetcher.mockRestore();
   });
 });
+
+it("strips server-owned metadata from edit requests", async () => {
+  const fetcher = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response(JSON.stringify(input), { status: 200 }));
+  try {
+    await createHttpApi("").save(
+      {
+        ...input,
+        id: "server-id",
+        created_at: "private-metadata",
+      } as ApplicationInput,
+      "server-id",
+    );
+    const options = fetcher.mock.calls[0][1]!;
+    const body = JSON.parse(options.body as string);
+    expect(body).not.toHaveProperty("id");
+    expect(body).not.toHaveProperty("created_at");
+    expect(body.company).toBe(input.company);
+  } finally {
+    fetcher.mockRestore();
+  }
+});

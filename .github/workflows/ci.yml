@@ -1,25 +1,61 @@
-name: Frontend CI
+name: Full-stack CI and delivery
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment (production is manual only)
+        type: choice
+        options: [dev, production]
+        default: production
+      ref:
+        description: Commit or branch to test before deployment
+        default: main
 permissions:
   contents: read
+concurrency:
+  group: delivery-${{ github.ref }}-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
 jobs:
-  test-and-build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 10.11.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: applytrack-frontend
-          path: dist/
+          ref: ${{ inputs.ref || github.sha }}
+      - id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - run: make test
+  deploy-dev:
+    needs: test
+    if: github.event_name != 'pull_request' && inputs.environment != 'production' && vars.RENDER_DEV_SERVICE_ID != ''
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.test.outputs.sha }}" }
+      - name: Deploy exactly the tested commit and wait for live status
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ vars.RENDER_DEV_SERVICE_ID }}
+          TESTED_SHA: ${{ needs.test.outputs.sha }}
+        run: python3 scripts/render_deploy.py deploy --commit "$TESTED_SHA"
+  deploy-production:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'production' && vars.RENDER_PROD_SERVICE_ID != ''
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.test.outputs.sha }}" }
+      - name: Manually requested production release of tested source
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ vars.RENDER_PROD_SERVICE_ID }}
+          TESTED_SHA: ${{ needs.test.outputs.sha }}
+        run: python3 scripts/render_deploy.py deploy --commit "$TESTED_SHA"

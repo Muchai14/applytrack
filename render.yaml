@@ -1,0 +1,47 @@
+# Free demo deployment. Render Free PostgreSQL expires after 30 days.
+# One database instance; separate PostgreSQL schemas isolate dev and production.
+databases:
+  - name: applytrack-db
+    plan: free
+    databaseName: applytrack
+    user: applytrack
+    region: oregon
+services:
+  - type: web
+    name: applytrack-dev
+    runtime: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/Muchai14/applytrack
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: {name: applytrack-db, property: connectionString}
+      - {key: DB_SCHEMA, value: applytrack_dev}
+      - {key: APP_ENV, value: dev}
+      - {key: SEED_DEMO, value: "true"}
+      - {key: ENABLE_FAULT_TRIGGER, value: "true"}
+      - key: OPS_TOKEN
+        generateValue: true
+      - {key: VITE_USE_MOCK_API, value: "false"}
+  - type: web
+    name: applytrack-production
+    runtime: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/Muchai14/applytrack
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: {name: applytrack-db, property: connectionString}
+      - {key: DB_SCHEMA, value: applytrack_production}
+      - {key: APP_ENV, value: production}
+      - {key: SEED_DEMO, value: "true"}
+      - {key: ENABLE_FAULT_TRIGGER, value: "false"}
+      - {key: VITE_USE_MOCK_API, value: "false"}

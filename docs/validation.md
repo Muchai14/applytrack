@@ -1,21 +1,39 @@
-# Frontend milestone validation
+# Full-stack validation evidence
 
-Validation date: November 15, 2026 (America/Los_Angeles).
-Tracked release work: https://github.com/Muchai14/applytrack/issues/1
+Validation date: November 16, 2026 (America/Los_Angeles).
+Public tracker: issues #2–#4 in https://github.com/Muchai14/applytrack/issues.
 
-- `pnpm test`: 39 passing tests across three files: 20 domain, 11 API adapter,
-  and 8 interactive frontend flow tests.
-- `pnpm build`: strict TypeScript validation and Vite production build passed.
-- Browser checks: dashboard at 1440 × 1000 and 390 × 844; application creation,
-  refreshed persistence and search; mobile navigation; CSV upload page layout.
-- Production-build layout: document width equals viewport width at 390 and 1440
-  pixels. A hidden table heading initially caused mobile overflow; the heading
-  and scroll containment were corrected and rechecked on the production build.
-- UI tests cover rejection-date requirements, deletion confirmation, dashboard
-  loading/empty/error/retry states, follow-up recording, incident details, and
-  CSV confirmation before writes.
+## Executed checks
 
-Tests run against mocked persistence and jsdom. They do not prove a real
-PostgreSQL integration, deployed FastAPI behavior, production recovery, or a real
-on-call agent. Those remain issues #2–#4. No independent/concurrent agent review
-was performed. GitHub CI status is separate from these local results.
+`make test` passed against isolated Docker containers:
+
+- 40 frontend/domain/mock/HTTP tests.
+- 26 Python unit and real PostgreSQL integration tests, including restart
+  persistence, transactional/concurrent imports, dev/production schema isolation,
+  telemetry correlation, authorization, deduplication and recovery failures.
+- 1 real Chromium Playwright UI → FastAPI → PostgreSQL flow, including refresh
+  persistence and a rejected-status update.
+- The Docker frontend build includes a strict TypeScript check.
+
+The browser test exposed server-owned metadata in edit requests. The form and
+HTTP adapter now explicitly submit only editable fields; a regression test checks
+the boundary. An earlier test locator issue was also fixed.
+
+## Live local operations
+
+`docker compose up --build -d --wait` started all ten services. Prometheus targets
+for the API/checker were up. Tempo search and Loki queries returned stored traces
+and structured logs. These are real signals, not incident fixtures.
+
+`make demo-incident` enabled the dev fault, observed a real 503, and waited for the
+independent responder to disable the fault and verify two successful dashboard
+requests. The sanitized persisted report is in
+[evidence/incident-recovery.json](evidence/incident-recovery.json).
+
+The runtime responder is deterministic policy-based automation, not an LLM. No
+concurrent development agents or independent human reviewer are claimed.
+
+Cloud deployment, native CI-gated CD and hosted telemetry must be verified
+separately. Configuration files alone are not evidence of an active cloud service.
+The older private Sites URL is a frontend-only mock milestone, not this full-stack
+deployment. Consult the release evidence for actual hosted URLs and status.

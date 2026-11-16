@@ -1,89 +1,132 @@
 # ApplyTrack
 
-A personal job application tracker that brings scattered records into one place.
-Review your pipeline, spot applications needing follow-up, and understand outcomes
-by role category without rebuilding spreadsheet summaries each week.
+ApplyTrack helps a job seeker keep scattered application records in one place,
+review outcomes by role category, and notice applications needing follow-up.
+Users can create/edit/delete applications, change status, record follow-ups,
+import CSV records, and review a database-backed dashboard and incident history.
 
-[Source repository](https://github.com/Muchai14/applytrack) · [Public task tracker](https://github.com/Muchai14/applytrack/issues)
+[Public task tracker](https://github.com/Muchai14/applytrack/issues) ·
+[Specification](docs/spec.md) · [Architecture](docs/architecture.md) ·
+[Validation evidence](docs/validation.md)
 
-## Current delivery: interactive frontend
+## Run the complete system
 
-React + TypeScript + Vite, TanStack Query, Lucide icons, and plain CSS. All user
-interface and project documentation are in English. No backend, authentication,
-real monitoring, or autonomous repairs are implemented in this milestone.
-
-- Create, edit, delete, and change application status.
-- Search company/role and filter status/category.
-- Computed summary cards, pipeline counts, rejection share, and rejection median.
-- Stale open applications and explicit follow-up recording.
-- CSV preview, validation, idempotent import, and conflict reporting.
-- Read-only simulated incident reports with diagnosis and recovery evidence.
-- Responsive navigation, native accessible dialogs, form validation, retry states.
-
-The demo seeds 16 **synthetic** applications on first use. Mock changes persist in
-this browser's localStorage. Clearing browser data resets the workspace. There is
-no cross-device sync. Incident records are illustrative fixtures, not live events.
-Do not use real personal records in a public demonstration.
-
-## Run locally
-
-Prerequisites: Node.js 22 or later and pnpm 10.11.0 (`corepack enable` if available).
+Prerequisite: Docker Desktop (or Docker Engine with Compose), with sufficient
+memory for the local observability stack. No paid service or model is required.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm dev
+docker compose up --build -d --wait
 ```
 
-Open the Local URL printed by Vite. The mock API is enabled by default; no
-credentials, environment file, or running database is required.
+Open **http://localhost:8080**. The frontend calls FastAPI, which persists data in
+**PostgreSQL**. The default application does not use browser storage. Database
+migrations run on startup, and synthetic sample records are seeded once. CRUD
+changes survive API/container restarts and are shared across browsers.
+
+- Application: http://localhost:8080
+- API health: http://localhost:8000/health
+- Grafana: http://localhost:3000 (`admin` / `local-demo-only`)
+- Prometheus: http://localhost:9090
+- Alertmanager: http://localhost:9093
+
+These ports bind to loopback only. Default credentials are for the isolated local
+demo; cloud deployment uses a generated management token. The public application
+is a shared synthetic-data demo without user accounts. Never import private
+records into it. `docker compose down` stops services and preserves named volumes.
+
+## Tests: one command
 
 ```sh
-pnpm test       # all domain, mock/HTTP adapter, and frontend flow tests
-pnpm build      # strict TypeScript check and production build
-pnpm preview    # serve the production build locally
+make test
 ```
 
-CI runs the same tests and build on pushes and pull requests. Frontend tests use
-jsdom with real mock storage; these are not full-stack or browser E2E tests.
+This builds isolated test containers, runs frontend/domain/mock/HTTP tests,
+Python unit and real-PostgreSQL integration tests, then a Chromium Playwright
+UI → API → PostgreSQL flow. It starts its own test database and cleans up only
+that test stack. No development data is touched. The Python fixtures refuse to
+reset any database whose name does not end in `_test`.
 
-## Connect a future FastAPI backend
+The Playwright flow creates an application through the UI, verifies it through
+the real API, changes its status, reloads the page and verifies persistence.
+GitHub CI runs the same command on pull requests and main-branch pushes.
 
-Copy `.env.example` to `.env.local` and set:
+## Features and exact behavior
 
-```dotenv
-VITE_USE_MOCK_API=false
-VITE_API_BASE_URL=http://localhost:8000
+- Statuses: Applied, Interview, Rejected, Closed. Only Applied/Interview are open.
+- Rejection share: currently rejected / all records in that category, including
+  open and closed records. It is descriptive, not a hiring prediction.
+- Rejection median: elapsed days for currently rejected records; null if none.
+- Stale: open and at least 21 days since the latest application date, status
+  transition or explicit follow-up. Description edits do not reset this clock.
+- Dates are UTC; server validation rejects future/invalid/reversed dates.
+- CSV has a stable source_id, a 1 MB / 1,000-row limit, preview and validation.
+  Identical imports skip records; conflicts do not overwrite existing records.
+  Other valid new rows may import; any invalid row blocks the entire transaction.
+  Concurrent imports are serialized with a PostgreSQL transaction lock.
+
+See [API_CONTRACT.md](API_CONTRACT.md) for routes and payloads. The HTTP client is
+centralized in `src/api/http.ts`. The standalone mock adapter remains available
+only when explicitly enabled with `VITE_USE_MOCK_API=true`; its incidents are
+clearly labeled simulated. Docker and Render builds default to the real API.
+
+## Observe user impact and demonstrate automatic recovery
+
+The dashboard request produces an HTTP span, a database-operation child span,
+structured JSON logs, request/latency metrics and trace exemplars. Logs and traces
+share a trace ID. No bodies, CSV contents, company/role names, credentials, raw
+URLs or user IDs are sent to telemetry. The Collector sends traces to Tempo and
+logs to Loki; Prometheus stores metrics. Grafana data sources and the **ApplyTrack
+· User impact** dashboard are provisioned automatically.
+
+The checker is a separate service. Two consecutive invalid/unreachable/5xx
+dashboard checks trigger one persisted incident. A constrained autonomous
+**policy-based responder** investigates using authenticated fixed tools. For a
+known dev fault it disables the fault flag and verifies two successful checks.
+Unknown faults and failed repairs escalate to the incident view without repeated
+repair attempts. This is deterministic automation, not a claim of LLM reasoning;
+no model API or paid inference is required.
+
+```sh
+make demo-incident
 ```
 
-Restart Vite (or rebuild the deployed frontend). API selection is centralized in
-`src/api/index.ts`; HTTP and mock implementations conform to the `Api` interface.
-No components call `fetch` or localStorage directly. The backend must implement
-[API_CONTRACT.md](API_CONTRACT.md), validation, and appropriate CORS. Vite
-variables are public build-time configuration; never put credentials in them.
+This enables a dev-only dashboard 503 fault, waits for the independent checker,
+and prints the real resolved incident. The application data stays unchanged.
+Production rejects fault injection at configuration time and has no fault routes.
+Alertmanager can also wake the responder from user-impact alert rules.
+See [runbook](docs/runbook.md) and [recorded incident evidence](docs/evidence/incident-recovery.json).
 
-## Metric definitions
+## Free deployment, CI/CD and rollback
 
-- Open = Applied + Interview. Rejected and Closed are terminal.
-- Rejection share = currently rejected / all applications in a category, including
-  pending and closed records. It is not a prediction of final outcomes.
-- Median days to rejection includes currently rejected records with decision dates.
-- Stale = open with at least 21 days since the most recent application date,
-  actual status transition, or explicit follow-up. Description edits do not reset it.
-- Dates display in UTC. Decision dates must be between application date and today.
+[Render blueprint](render.yaml) requests only Free services, serves the frontend
+from FastAPI, and uses distinct dev/production PostgreSQL schemas. Full setup,
+free-tier limits, required GitHub secrets/variables and deployment verification
+are documented in [free-deployment.md](docs/free-deployment.md).
 
-CSV uses stable source IDs. Identical imports are skipped; existing source IDs
-with changed data are conflicts and stay unchanged. Other valid new records may
-be imported. Any validation error blocks the entire write. Limits: 1 MB, 1,000 rows.
-An example CSV can be downloaded on the Import page.
+CI tests first; Render’s connected GitHub integration automatically deploys dev
+only after checks pass. Production auto-deploy is off and uses a manual release
+of a tested commit. An optional API-driven GitHub release workflow is also
+included; its jobs skip until configured and are not the default CD path.
 
-## Project context and next milestones
+```sh
+make rollback IMAGE=applytrack-api:known-good
+```
 
-[Full specification](docs/spec.md) describes the **target full-stack project**;
-its acceptance criteria are not a claim that future backend/operations work is
-complete. See [AGENTS.md](AGENTS.md), [architecture](docs/architecture.md),
-[agent roles](docs/agents.md), [process](docs/process.md), and
-[runbook](docs/runbook.md).
+The image must already exist. This restores the API/responder image without
+dropping the database. The runbook also covers Render's prior-deployment rollback.
+Migrations are additive; image rollback does not restore database contents.
 
-Future milestones: FastAPI + PostgreSQL, full-stack tests, Docker Compose,
-automated dev/manual production CD, request-correlated telemetry, an independent
-checker, and an allowlisted responder with a real recovery demonstration.
+**Free hosting limits:** Render web services sleep after inactivity and the Free
+PostgreSQL database expires after 30 days. Keep exports or connect a separately
+provisioned free PostgreSQL provider for longer retention. No paid upgrade is
+required or authorized. See [Render's current limits](https://render.com/docs/free).
+
+## Context and review
+
+[AGENTS.md](AGENTS.md) points to modular process, role, architecture and runbook
+docs. Public issues record acceptance criteria, implementation notes and actual
+validation; issue-linked commits provide tracker evidence. Original frontend
+bootstrap timing is documented honestly in [process.md](docs/process.md).
+
+The course also requires reviewing three other participants' projects. Completing
+this application alone does not satisfy that peer-review requirement.

@@ -1,30 +1,74 @@
-# Frontend runbook
+# Operations runbook
 
-## Build and serve
+## Start, test and stop
 
-Run `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`. The deployable
-static output is `dist/`. Serve via an HTTP server; opening index.html directly
-from disk is not supported. Hash navigation does not require server-side routing.
+- `docker compose up --build -d --wait`: start the complete system.
+- `make test`: isolated unit/frontend/PostgreSQL/browser checks and test cleanup.
+- `docker compose ps`: inspect service state.
+- `docker compose down`: stop without deleting application data.
 
-## Demo state
+Do not run `down --volumes` on the development project unless you intend to erase
+its database and telemetry. The test script only deletes its own isolated stack.
 
-Mock application state is in the `applytrack.demo.v1` localStorage key. Empty
-state remains empty after the last record is deleted. If state is corrupted,
-the UI displays an error instead of replacing it. A user can clear this key in
-browser developer tools to restore seed records; this removes local demo edits.
-Browser storage errors are surfaced and never reported as successful saves.
+## Dashboard unavailable
 
-## API errors
+1. Check `/health` and the external availability metric.
+2. Open Grafana's ApplyTrack dashboard. Inspect failure/latency metrics, then
+   use a log's trace_id or exemplar to open the correlated Tempo trace.
+3. Inspect the persisted incident report. No private application records belong
+   in diagnostics. Do not paste connection URLs or credentials into an issue.
+4. The responder only fixes the known dev fault flag. Unknown failures, database
+   unavailability and provider cold starts require human investigation.
 
-If real API mode is enabled, confirm VITE_API_BASE_URL, backend health, and CORS.
-Use the page's retry action after recovery. HTTP calls time out after 10 seconds.
-Changing Vite variables requires a restart/rebuild. Mock incidents are not real
-alerts and their reports must not be treated as production evidence.
+## Reproduce an alert and real repair
 
-## Release and rollback scope
+Run `make demo-incident` while the Compose checker is running. It enables the
+protected dev fault, confirms 503, waits for a new incident and checks resolution.
+The checker polls every 30 seconds; the drill can take about a minute. The API's
+health/control endpoints remain reachable. Two valid dashboard responses are
+required after repair. Inspect the report in Service incidents.
 
-GitHub CI validates the frontend. This milestone may be served as a private
-static preview; full course dev/prod CD and rollback drills remain future work.
-A frontend rollback requires building and deploying a prior source commit using
-the same environment values. That procedure has not yet been demonstrated as a
-full application rollback, and cannot restore a future database.
+The standalone local OPS_TOKEN is a demo value. If overriding it, update the
+Alertmanager webhook credential to match. Render generates a different secret;
+never reuse the local sample value on an internet-facing deployment.
+
+Production startup rejects ENABLE_FAULT_TRIGGER=true, and production has no
+fault/control routes. Never enable dev remediation in production.
+
+## Roll back a release
+
+Before a new build, tag the current API image, e.g.:
+
+```sh
+docker image tag applytrack-api:local applytrack-api:known-good
+```
+
+After a failed release, `make rollback IMAGE=applytrack-api:known-good` recreates
+the API/responder from that retained image, preserves PostgreSQL, and checks health.
+The frontend is included in the API image for Render; local Nginx is a separate
+image and can be restored independently if its assets changed. A release drill
+must include both where necessary. Current migrations are additive.
+
+For hosted rollback use `scripts/render_deploy.py rollback --deploy-id ...` or
+Render's rollback UI. See free-deployment.md for required secure configuration
+and the free plan's limited retained deployment history.
+
+## Backup and expiration
+
+Export the local database before destructive maintenance:
+
+```sh
+docker compose exec -T db pg_dump -U applytrack -d applytrack > applytrack-backup.sql
+```
+
+This may contain private records: keep the file outside Git and public artifacts.
+Restore to a separate empty database and verify it before replacing any live data.
+Render Free PostgreSQL expires after 30 days and provides no managed backups.
+Do not claim image rollback restores application records.
+
+## Deployment verification
+
+Confirm `/health` reports the tested release ID, `/api/dashboard` returns valid
+data, and UI-created records survive refresh/redeploy. Keep cloud deployment,
+CI/CD and remote telemetry evidence separate from local verification. If a job
+skips for missing account secrets, document it as unconfigured.

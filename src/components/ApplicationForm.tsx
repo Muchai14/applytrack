@@ -16,7 +16,15 @@ export default function ApplicationForm({
 }) {
   const [input, setInput] = useState<ApplicationInput>(
     application
-      ? { ...application }
+      ? {
+          company: application.company,
+          role: application.role,
+          category: application.category,
+          channel: application.channel,
+          status: application.status,
+          applied_at: application.applied_at,
+          decision_at: application.decision_at,
+        }
       : {
           company: "",
           role: "",

@@ -177,8 +177,7 @@ operator action in the MVP.
 
 Incident reports are persisted and visible in a simple incident view; an optional
 GitHub issue adapter may publish sanitized reports. An agent/model outage also
-leaves a visible unresolved incident. Tests use a fake model/tool adapter; the
-demo includes a real agent run, with its tools and model configuration documented.
+leaves a visible unresolved incident. Tests use constrained tool adapters; the demo includes a real autonomous policy-based responder run. No paid model is required.
 
 ## 8. Testing and evidence
 
@@ -250,3 +249,15 @@ private records remain local.
 - Complete reviews of three other participants' projects. Peer review is required
   to pass and is separate from implementation time.
 - Confirm deadlines and submission workflow on the course platform.
+
+## Implementation decisions for the free full-stack milestone
+
+- HTTP/FastAPI/PostgreSQL is the default; mock mode is opt-in.
+- The responder is a deterministic autonomous policy agent with fixed tools; it
+  does not claim LLM reasoning or require paid inference.
+- Render Free can run the complete application image. One free PostgreSQL instance
+  uses separate dev/production schemas, with the documented 30-day expiration.
+- The independent local checker runs every 30 seconds. An optional external GitHub
+  checker can run at a slower free schedule, persisting state in PostgreSQL.
+- Remote telemetry and cloud CD require account configuration and actual evidence;
+  local config/tests alone do not prove they are active in the hosted environment.

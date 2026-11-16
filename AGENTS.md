@@ -1,21 +1,26 @@
 # ApplyTrack agent context
 
-ApplyTrack is a single-user job application tracker. Current milestone is the
-mock-only React frontend; do not claim full-stack deployment or incident recovery.
-All documentation and UI text must be English. Use synthetic sample data only.
+ApplyTrack is a single-user job application tracker. The user authorized upgrading
+the original mock frontend into a full-stack course project, using free services
+only. Do not activate paid hosting, inference, or account upgrades.
 
 Read these modular docs before working:
 
-- [Specification](docs/spec.md): intended behavior and full project criteria.
-- [Architecture](docs/architecture.md): boundaries and current implementation.
+- [Specification](docs/spec.md): behavior and course acceptance criteria.
+- [Architecture](docs/architecture.md): boundaries and current components.
 - [Agent roles](docs/agents.md): responsibilities and handoffs.
-- [Process](docs/process.md): tracker workflow and verification.
-- [Runbook](docs/runbook.md): frontend operations and planned backend work.
-- [API contract](API_CONTRACT.md): FastAPI integration boundary.
+- [Process](docs/process.md): tracker workflow and required checks.
+- [Runbook](docs/runbook.md): operational commands and recovery limits.
+- [API contract](API_CONTRACT.md): frontend/backend interface.
+- [Free deployment](docs/free-deployment.md): configuration and account limits.
 
-All backend access belongs in `src/api/`. Keep domain calculations testable in
-`src/domain.ts`. Components use the `Api` interface through TanStack Query.
-Preserve storage failure messages and never silently overwrite corrupted data.
-Run `pnpm test` and `pnpm build` before declaring a code change complete.
-Never add real job-search records, secrets, or generated node_modules to Git.
-Do not introduce backend services or authentication without an explicit task.
+Use English for UI and docs, synthetic records for demos, and no secrets in Git,
+issues or telemetry. Components access data only through `src/api/`; FastAPI is
+authoritative for business validation and writes. PostgreSQL is mandatory in
+integration tests; test fixtures refuse non-test database names. Use additive
+migrations. Production must never expose fault injection or arbitrary repair tools.
+
+Before release run `make test`; it includes frontend tests, backend unit/real-DB
+integration tests and a browser flow. Inspect telemetry and exercise the dev
+incident drill for operational changes. Do not claim deployment/CD/telemetry was
+verified merely because a configuration file exists; link actual evidence.

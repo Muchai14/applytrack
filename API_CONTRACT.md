@@ -2,7 +2,7 @@
 
 All endpoints below use JSON. Dates are `YYYY-MM-DD`; timestamps are ISO 8601 UTC.
 Input validation must also be implemented on the server. See `src/types.ts` for
-complete frontend types. No backend exists in this delivery.
+complete frontend types. The FastAPI implementation is in `backend/app/main.py`.
 
 | Method | Route                             | Request                   | Success response |
 | ------ | --------------------------------- | ------------------------- | ---------------- |
@@ -33,7 +33,7 @@ ImportPreview: rows (valid parsed Application[]), errors (row-numbered strings),
 created, skipped, conflicts. Preview never writes. Commit revalidates against
 current records. Validation errors abort all writes; conflicts leave existing
 records unchanged while other valid new rows may be created. Enforce size/row
-limits before expensive parsing and import transactionally in the future backend.
+limits before expensive parsing and import transactionally.
 
 CSV columns: source_id,company,role,category,channel,status,applied_at,
 status_changed_at,last_followed_up_at,decision_at. Last three may be empty;

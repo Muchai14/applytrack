@@ -1,0 +1,97 @@
+name: applytrack
+x-api-env: &api-env
+  DATABASE_URL: postgresql+psycopg://applytrack:local-demo-only@db:5432/applytrack
+  APP_ENV: dev
+  OPS_TOKEN: ${OPS_TOKEN:-local-demo-ops-token-change-before-hosting}
+  ENABLE_FAULT_TRIGGER: "true"
+  RELEASE_ID: ${RELEASE_ID:-local}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: applytrack
+      POSTGRES_PASSWORD: local-demo-only
+      POSTGRES_DB: applytrack
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U applytrack -d applytrack]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  api:
+    build: {context: ., target: api}
+    image: ${API_IMAGE:-applytrack-api:local}
+    environment:
+      <<: *api-env
+      SEED_DEMO: "true"
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health',timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  web:
+    build: {context: ., target: web}
+    ports: ["127.0.0.1:8080:80"]
+    depends_on:
+      api: {condition: service_healthy}
+  runtime:
+    build: {context: ., target: api}
+    image: ${API_IMAGE:-applytrack-api:local}
+    command: [python, -m, app.runtime]
+    environment:
+      <<: *api-env
+      API_URL: http://api:8000
+      OTEL_SERVICE_NAME: applytrack-responder
+      CHECK_INTERVAL_SECONDS: "30"
+    ports: ["127.0.0.1:9000:9000"]
+    depends_on:
+      api: {condition: service_healthy}
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    command: [--config=/etc/otelcol/config.yaml]
+    volumes: [./ops/collector.yaml:/etc/otelcol/config.yaml:ro]
+    depends_on: [tempo, loki]
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command: [--config.file=/etc/prometheus/prometheus.yml, --enable-feature=exemplar-storage, --storage.tsdb.retention.time=7d]
+    volumes:
+      - ./ops/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/alerts.yaml:/etc/prometheus/alerts.yaml:ro
+      - prometheus:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on: [api, runtime, alertmanager]
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command: [--config.file=/etc/alertmanager/config.yaml]
+    volumes: [./ops/alertmanager.yaml:/etc/alertmanager/config.yaml:ro]
+    ports: ["127.0.0.1:9093:9093"]
+  tempo:
+    image: grafana/tempo:2.7.2
+    command: [-config.file=/etc/tempo.yaml]
+    volumes: [./ops/tempo.yaml:/etc/tempo.yaml:ro, tempo:/var/tempo]
+  loki:
+    image: grafana/loki:3.4.2
+    command: [-config.file=/etc/loki/config.yaml]
+    volumes: [./ops/loki.yaml:/etc/loki/config.yaml:ro, loki:/loki]
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-local-demo-only}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [prometheus, tempo, loki]
+volumes:
+  postgres:
+  prometheus:
+  tempo:
+  loki:
+  grafana:

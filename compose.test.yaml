@@ -1,0 +1,43 @@
+name: applytrack-tests
+services:
+  db:
+    image: postgres:16-alpine
+    environment: {POSTGRES_USER: applytrack, POSTGRES_PASSWORD: test-only, POSTGRES_DB: applytrack_test}
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U applytrack -d applytrack_test]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  api:
+    build: {context: ., target: api}
+    environment: &test-env
+      DATABASE_URL: postgresql+psycopg://applytrack:test-only@db:5432/applytrack_test
+      TEST_DATABASE_URL: postgresql+psycopg://applytrack:test-only@db:5432/applytrack_test
+      APP_ENV: test
+      OPS_TOKEN: test-ops-token-at-least-24-characters
+      ENABLE_FAULT_TRIGGER: "true"
+      SEED_DEMO: "false"
+    depends_on: {db: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health',timeout=3)"]
+      interval: 3s
+      timeout: 4s
+      retries: 40
+  web:
+    build: {context: ., target: web}
+    depends_on: {api: {condition: service_healthy}}
+  tests:
+    build: {context: ., target: api}
+    environment: *test-env
+    command: [python, -m, pytest, -q]
+    profiles: [checks]
+    depends_on: {api: {condition: service_healthy}}
+  frontend-tests:
+    build: {context: ., target: frontend-tests}
+    profiles: [checks]
+  e2e:
+    build: {context: ., target: e2e}
+    environment: {E2E_BASE_URL: "http://web"}
+    volumes: [./test-results:/code/test-results]
+    profiles: [checks]
+    depends_on: {api: {condition: service_healthy}, web: {condition: service_started}}

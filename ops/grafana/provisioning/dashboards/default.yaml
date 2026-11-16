@@ -1,0 +1,4 @@
+apiVersion: 1
+providers:
+  - name: ApplyTrack
+    options: {path: /var/lib/grafana/dashboards}
