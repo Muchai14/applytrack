@@ -1,0 +1,19 @@
+{
+  "platform": "Render Free",
+  "dev_url": "https://applytrack-dev.onrender.com",
+  "production_url": "https://applytrack-production-jvw0.onrender.com",
+  "dev_service_id": "srv-dbtkcic9v7es7399hitg",
+  "production_service_id": "srv-dbtkcic9v7es7399hisg",
+  "bootstrap_commit": "e02cb7ed96e57cc7cf41c868b65628b7f759c72a",
+  "bootstrap_dev_deploy": "dep-dbtkcik9v7es7399hjq0",
+  "bootstrap_production_deploy": "dep-dbtkcik9v7es7399hjog",
+  "production_health": {
+    "status": "ok",
+    "release_id": "e02cb7ed96e57cc7cf41c868b65628b7f759c72a"
+  },
+  "production_dashboard_status": 200,
+  "production_dev_diagnostics_status": 404,
+  "ci_url": "https://github.com/Muchai14/applytrack/actions/runs/43925131571",
+  "ci_result": "success",
+  "note": "Native dev CI-gated deployment and manual production release are verified separately from the initial Blueprint deployment."
+}

@@ -1,0 +1,20 @@
+{
+  "dashboard_http_status": 200,
+  "sample_trace_id": "ecccc60e5da43c2cbeade1801124bbc7",
+  "tempo_http_status": 200,
+  "stored_traces": 20,
+  "loki_http_status": 200,
+  "stored_log_streams": 5,
+  "prometheus_targets": {
+    "api": "up",
+    "checker": "up"
+  },
+  "scope": "local Docker Compose; actual stored signals, not hosted telemetry",
+  "correlation": {
+    "shared_trace_id": "348a799ce3ced1a417de525ac1c70dc3",
+    "metric_exemplar_stored": true,
+    "tempo_trace_status": 200,
+    "matching_loki_streams": 1
+  },
+  "grafana_dashboard_viewed": true
+}

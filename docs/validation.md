@@ -37,3 +37,12 @@ Cloud deployment, native CI-gated CD and hosted telemetry must be verified
 separately. Configuration files alone are not evidence of an active cloud service.
 The older private Sites URL is a frontend-only mock milestone, not this full-stack
 deployment. Consult the release evidence for actual hosted URLs and status.
+
+## Executed rollback drill
+
+An intentionally broken dev candidate returned dashboard 503 while health stayed
+available. Restoring the retained `applytrack-api:known-good` image returned the
+dashboard to 200. PostgreSQL kept 3 applications before and after; no database
+was dropped. See [evidence/rollback.json](evidence/rollback.json).
+
+Stored telemetry query results are in [evidence/telemetry.json](evidence/telemetry.json).

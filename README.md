@@ -9,6 +9,15 @@ import CSV records, and review a database-backed dashboard and incident history.
 [Specification](docs/spec.md) · [Architecture](docs/architecture.md) ·
 [Validation evidence](docs/validation.md)
 
+## Hosted full-stack demo
+
+- [Production](https://applytrack-production-jvw0.onrender.com)
+- [Development](https://applytrack-dev.onrender.com)
+
+Both use real PostgreSQL with separate schemas. No ChatGPT login is required.
+The old private Sites preview belongs to the earlier mock-only milestone.
+Free services may take about a minute to wake after inactivity.
+
 ## Run the complete system
 
 Prerequisite: Docker Desktop (or Docker Engine with Compose), with sufficient
