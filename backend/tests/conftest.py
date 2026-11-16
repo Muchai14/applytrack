@@ -19,13 +19,15 @@ def sessions(settings):
     engine, factory = connect(settings)
     assert engine.dialect.name == 'postgresql', 'Integration tests must use real PostgreSQL'
     with engine.begin() as db:
-        db.execute(text('TRUNCATE applications, incidents, system_state'))
+        db.execute(text('TRUNCATE applications, incidents, system_state, login_sessions, auth_throttle, users CASCADE'))
     yield factory
     engine.dispose()
 
 @pytest.fixture
 def client(settings, sessions):
-    with TestClient(create_app(settings)) as c:
+    with TestClient(create_app(settings), headers={"X-Requested-With":"ApplyTrack"}) as c:
+        result=c.post("/api/auth/register",json={"username":"TestUser","password":"Test-only-password-123!"})
+        assert result.status_code==201
         yield c
 
 @pytest.fixture

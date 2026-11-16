@@ -1,6 +1,7 @@
 # ApplyTrack
 
-ApplyTrack helps a job seeker keep scattered application records in one place,
+ApplyTrack gives each registered job seeker a personal workspace to keep scattered
+application records in one place,
 review outcomes by role category, and notice applications needing follow-up.
 Users can create/edit/delete applications, change status, record follow-ups,
 import CSV records, and review a database-backed dashboard and incident history.
@@ -15,6 +16,7 @@ import CSV records, and review a database-backed dashboard and incident history.
 - [Development](https://applytrack-dev.onrender.com)
 
 Both use real PostgreSQL with separate schemas. No ChatGPT login is required.
+Create an ApplyTrack username/password account to access your own applications.
 The old private Sites preview belongs to the earlier mock-only milestone.
 Free services may take about a minute to wake after inactivity.
 
@@ -29,7 +31,7 @@ docker compose up --build -d --wait
 
 Open **http://localhost:8080**. The frontend calls FastAPI, which persists data in
 **PostgreSQL**. The default application does not use browser storage. Database
-migrations run on startup, and synthetic sample records are seeded once. CRUD
+migrations run on startup. New accounts start with an empty workspace. CRUD
 changes survive API/container restarts and are shared across browsers.
 
 - Application: http://localhost:8080
@@ -39,9 +41,9 @@ changes survive API/container restarts and are shared across browsers.
 - Alertmanager: http://localhost:9093
 
 These ports bind to loopback only. Default credentials are for the isolated local
-demo; cloud deployment uses a generated management token. The public application
-is a shared synthetic-data demo without user accounts. Never import private
-records into it. `docker compose down` stops services and preserves named volumes.
+demo; cloud deployment uses a generated management token. The public application requires registration/login and isolates application records
+by account. It remains a course demo with limited retention, not a production
+service for sensitive records. `docker compose down` stops services and preserves named volumes.
 
 ## Tests: one command
 
@@ -58,6 +60,23 @@ reset any database whose name does not end in `_test`.
 The Playwright flow creates an application through the UI, verifies it through
 the real API, changes its status, reloads the page and verifies persistence.
 GitHub CI runs the same command on pull requests and main-branch pushes.
+
+## Accounts
+
+Choose a unique username (3–24 letters, numbers or underscores) and a password
+(12–128 characters). Username matching is case-insensitive; the UI preserves your
+chosen capitalization. Registration signs you in and your username appears in
+the workspace/header. Log out using the account button. No email is collected.
+
+Passwords use salted scrypt hashes. Opaque seven-day sessions are stored server-
+side; the browser receives only an HttpOnly, SameSite cookie, Secure on hosted
+HTTPS. Passwords and session tokens are never stored in localStorage or telemetry.
+Server-side ownership checks cover CRUD, dashboard metrics, follow-ups and CSV
+imports. Source IDs are unique within your own account. Legacy shared demo rows
+are preserved as unowned data and are not assigned to a new registrant.
+
+There is no password-reset or account-recovery flow yet. Keep your password safe.
+Authentication has bounded rate limits and same-origin/custom-header verification.
 
 ## Features and exact behavior
 
@@ -123,7 +142,9 @@ make rollback IMAGE=applytrack-api:known-good
 
 The image must already exist. This restores the API/responder image without
 dropping the database. The runbook also covers Render's prior-deployment rollback.
-Migrations are additive; image rollback does not restore database contents.
+Account migration 0002 preserves existing records, but pre-account images must
+never be restored: they cannot enforce ownership. Local rollback rejects images
+without the account-security label. Image rollback does not restore data.
 
 **Free hosting limits:** Render web services sleep after inactivity and the Free
 PostgreSQL database expires after 30 days. Keep exports or connect a separately

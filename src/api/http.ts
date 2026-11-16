@@ -1,3 +1,4 @@
+import { SESSION_EXPIRED } from "./auth";
 import type {
   Api,
   Application,
@@ -17,15 +18,26 @@ export function createHttpApi(base: string): Api {
     try {
       const r = await fetch(base.replace(/\/$/, "") + path, {
         method,
+        credentials: "same-origin",
+        cache: "no-store",
         headers:
           body === undefined
             ? undefined
-            : { "Content-Type": "application/json" },
+            : {
+                "Content-Type": "application/json",
+                "X-Requested-With": "ApplyTrack",
+              },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
-      if (!r.ok)
-        throw new Error(`Request failed (${r.status}). Please try again.`);
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event(SESSION_EXPIRED));
+        throw new Error(
+          r.status === 401
+            ? "Your session ended. Please sign in again."
+            : `Request failed (${r.status}). Please try again.`,
+        );
+      }
       return r.status === 204 ? (undefined as T) : ((await r.json()) as T);
     } finally {
       clearTimeout(timeout);

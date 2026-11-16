@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import os
 import re
-from sqlalchemy import Boolean, JSON, String, Text, create_engine
+from sqlalchemy import Boolean, JSON, String, Text, Integer, ForeignKey, UniqueConstraint, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from .config import Settings
 
@@ -14,8 +14,10 @@ class Base(DeclarativeBase):
 
 class Application(Base):
     __tablename__ = "applications"
+    __table_args__ = (UniqueConstraint("owner_id", "source_id", name="uq_applications_owner_source"),)
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    source_id: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("users.id"), nullable=True, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
     company: Mapped[str] = mapped_column(String(160))
     role: Mapped[str] = mapped_column(String(160))
     category: Mapped[str] = mapped_column(String(160))
@@ -66,3 +68,24 @@ def connect(settings: Settings):
 
 def as_dict(row):
     return {column.name: getattr(row, column.name) for column in row.__table__.columns}
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(String(24))
+    username_key: Mapped[str] = mapped_column(String(24), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(300))
+    created_at: Mapped[str] = mapped_column(String(40))
+
+class LoginSession(Base):
+    __tablename__ = "login_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), index=True)
+    expires_at: Mapped[str] = mapped_column(String(40), index=True)
+
+class AuthThrottle(Base):
+    __tablename__ = "auth_throttle"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    started_at: Mapped[str] = mapped_column(String(40))
+    attempts: Mapped[int] = mapped_column(Integer)

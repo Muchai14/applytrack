@@ -113,7 +113,8 @@ partial writes. File size and row count limits are documented and enforced.
   dev automatically, then permits a manually approved production deployment
   of the same image. Hosting provider is chosen during the deployment spike.
 - Rollback: redeploy a known-good immutable image using a documented command.
-  MVP migrations are additive and compatible with the previous release;
+  Migrations preserve existing records; after account migration 0002, only images
+  that enforce account ownership are valid rollback targets;
   destructive migrations are out of scope. Image rollback is not a database
   restore; document backup and restore separately.
 - Public demo: synthetic data only, bounded uploads and basic request limits;
@@ -235,7 +236,7 @@ Root `AGENTS.md` summarizes the project and links to modular documentation:
 This is a timebox, not a guarantee. If infrastructure takes longer, reduce visual
 polish and optional features before cutting required validation or recovery work.
 
-Out of scope: email parsing, automatic applications, multi-user accounts, external
+Out of scope: email parsing, automatic applications, email-based recovery, external
 email/chat reminders, elaborate charts, arbitrary production self-repair, and
 claims about employers' screening mechanisms. Public demo data is disposable;
 private records remain local.
@@ -260,3 +261,22 @@ private records remain local.
   checker can run at a slower free schedule, persisting state in PostgreSQL.
 - Remote telemetry and cloud CD require account configuration and actual evidence;
   local config/tests alone do not prove they are active in the hosted environment.
+
+## Account scope extension (user request, issue #5)
+
+This extension supersedes the original no-login/single-user scope.
+
+- A visitor can register a unique, case-insensitive username with a password, sign
+  in, see their username, and sign out. New accounts have empty workspaces.
+- Passwords are salted scrypt hashes; revocable server-side sessions use opaque
+  HttpOnly/SameSite cookies and expire after seven days. Hosted cookies are Secure.
+- CRUD, dashboard, follow-ups and CSV operations enforce the session's owner.
+  Identical CSV source IDs may exist in different accounts without interference.
+- Existing shared rows remain unowned and hidden from normal accounts. No arbitrary
+  registrant receives the previous shared demo. Monitoring uses a protected,
+  read-only synthetic scope instead of customer credentials.
+- Registration/login, duplicate names, invalid credentials, expiry, CSRF protection,
+  ownership boundaries, logout and browser persistence require passing tests.
+- Update setup/API/architecture/runbook docs and verify the existing free dev and
+  production deployments. Never roll back to an image that predates ownership.
+- Password recovery, email verification and account deletion are outside this extension.

@@ -1,0 +1,22 @@
+{
+  "issue": 5,
+  "local_tests": {
+    "frontend": 45,
+    "backend_postgresql": 34,
+    "browser": 1,
+    "total": 80,
+    "result": "passed"
+  },
+  "features": [
+    "registration",
+    "case-insensitive login",
+    "logout and cross-tab session refresh",
+    "per-user applications and metrics",
+    "per-user CSV uniqueness",
+    "opaque HttpOnly sessions",
+    "CSRF and rate limits"
+  ],
+  "migration": "0002",
+  "legacy_records": "preserved unowned and hidden from normal accounts",
+  "cloud_verified": false
+}

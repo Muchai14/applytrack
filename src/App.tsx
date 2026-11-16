@@ -14,6 +14,7 @@ import {
   Download,
   FileSpreadsheet,
   LayoutDashboard,
+  LogOut,
   Leaf,
   Menu,
   Pencil,
@@ -33,6 +34,8 @@ import {
   type Incident,
   type ImportPreview,
 } from "./types";
+import AuthGate from "./components/AuthGate";
+import type { Account } from "./api/auth";
 import ApplicationForm from "./components/ApplicationForm";
 import {
   Company,
@@ -57,6 +60,31 @@ const pageFromHash = () => {
   return pages.find((p) => p.name.toLowerCase() === value)?.name ?? "Dashboard";
 };
 export default function App() {
+  if (isMock) return <Workspace user={{ id: "demo", username: "Demo" }} />;
+  return (
+    <AuthGate>
+      {(user, logout, pending, error) => (
+        <Workspace
+          user={user}
+          onLogout={logout}
+          logoutPending={pending}
+          logoutError={error}
+        />
+      )}
+    </AuthGate>
+  );
+}
+function Workspace({
+  user,
+  onLogout,
+  logoutPending = false,
+  logoutError = "",
+}: {
+  user: Account;
+  onLogout?: () => void;
+  logoutPending?: boolean;
+  logoutError?: string;
+}) {
   const [page, setPage] = useState<Page>(pageFromHash);
   const [mobile, setMobile] = useState(false);
   const [form, setForm] = useState<Application | "new" | null>(null);
@@ -100,9 +128,11 @@ export default function App() {
           ApplyTrack<span className="brand-dot">.</span>
         </a>
         <div className="workspace">
-          <span className="workspace-avatar">Y</span>
+          <span className="workspace-avatar">
+            {user.username.slice(0, 1).toUpperCase()}
+          </span>
           <div>
-            <strong>Your workspace</strong>
+            <strong>{user.username}’s workspace</strong>
             <small>Personal job search</small>
           </div>
           <span className="workspace-mark">⌘</span>
@@ -132,15 +162,33 @@ export default function App() {
             <CircleHelp size={18} /> How it works <ArrowUpRight size={15} />
           </button>
           <div className="profile">
-            <span className="profile-avatar">Y</span>
+            <span className="profile-avatar">
+              {user.username.slice(0, 1).toUpperCase()}
+            </span>
             <div>
-              <strong>Your personal space</strong>
+              <strong>{user.username}</strong>
               <small>
                 {isMock ? "Local demo workspace" : "Connected workspace"}
               </small>
             </div>
-            <ShieldCheck size={17} />
+            {onLogout ? (
+              <button
+                className="icon-btn"
+                aria-label="Log out from sidebar"
+                onClick={onLogout}
+                disabled={logoutPending}
+              >
+                <LogOut size={17} />
+              </button>
+            ) : (
+              <ShieldCheck size={17} />
+            )}
           </div>
+          {logoutError && (
+            <p role="alert" className="logout-error">
+              {logoutError}
+            </p>
+          )}
         </div>
       </aside>
       <div className="main-shell">
@@ -181,7 +229,23 @@ export default function App() {
             >
               <Bell size={19} />
             </button>
-            <span className="top-avatar">Y</span>
+            <span className="top-username">{user.username}</span>
+            <span
+              className="top-avatar"
+              aria-label={`Signed in as ${user.username}`}
+            >
+              {user.username.slice(0, 1).toUpperCase()}
+            </span>
+            {onLogout && (
+              <button
+                className="icon-btn account-logout"
+                aria-label="Log out"
+                onClick={onLogout}
+                disabled={logoutPending}
+              >
+                <LogOut size={17} />
+              </button>
+            )}
           </div>
         </header>
         <main id="main-content">

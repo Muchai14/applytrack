@@ -47,7 +47,7 @@ After a failed release, `make rollback IMAGE=applytrack-api:known-good` recreate
 the API/responder from that retained image, preserves PostgreSQL, and checks health.
 The frontend is included in the API image for Render; local Nginx is a separate
 image and can be restored independently if its assets changed. A release drill
-must include both where necessary. Current migrations are additive.
+must include both where necessary. Migration 0002 preserves data but requires account-compatible rollback images.
 
 For hosted rollback use `scripts/render_deploy.py rollback --deploy-id ...` or
 Render's rollback UI. See free-deployment.md for required secure configuration
@@ -72,3 +72,29 @@ Confirm `/health` reports the tested release ID, `/api/dashboard` returns valid
 data, and UI-created records survive refresh/redeploy. Keep cloud deployment,
 CI/CD and remote telemetry evidence separate from local verification. If a job
 skips for missing account secrets, document it as unconfigured.
+
+## Account operations and rollback security boundary
+
+Users register their own username/password in the application. Do not create
+personal credentials on their behalf. New accounts are empty; pre-account shared
+records are preserved as unowned and are not claimable through the API.
+
+There is no password reset, email recovery or account deletion endpoint in this
+version. A forgotten password cannot be recovered through the UI. Sessions expire
+after seven days; logout revokes the current session immediately. Authentication
+errors and rate-limit responses must not include credentials or raw input.
+
+For custom same-origin hosting, set PUBLIC_ORIGIN to the exact HTTPS origin.
+Render's RENDER_EXTERNAL_URL is used automatically. Local HTTP development uses
+non-Secure cookies; hosted HTTPS uses Secure cookies. All browser writes require
+X-Requested-With: ApplyTrack. Do not enable permissive credentialed CORS.
+
+**Never restore a pre-account release after migration 0002.** Earlier application
+images cannot enforce ownership. Local rollback requires the image label
+`org.applytrack.auth-version=1`; retag a tested account-compatible image as the
+new known-good baseline. For Render, select only a release containing account
+security. The previous pre-account rollback evidence is historical, not permission
+to use that image with current customer records.
+
+`make demo-incident` now uses the existing management token for read-only synthetic
+checks and incident reports. The checker does not need a customer's credentials.

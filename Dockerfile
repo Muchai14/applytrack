@@ -17,6 +17,7 @@ FROM nginx:1.27-alpine AS web
 COPY ops/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=frontend-build /code/dist /usr/share/nginx/html
 FROM python:3.13-slim AS api
+LABEL org.applytrack.auth-version="1"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 FRONTEND_DIR=/app/frontend
 WORKDIR /app/backend
 COPY backend/requirements.txt .

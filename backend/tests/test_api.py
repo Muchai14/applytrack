@@ -12,7 +12,8 @@ def test_crud_and_restart_persistence(client, settings, payload):
     a = r.json()
     changed = client.patch('/api/applications/'+a['id'], json={**payload, 'company':'Updated Demo'}).json()
     assert changed['status_changed_at'] == a['status_changed_at']
-    with TestClient(create_app(settings)) as restarted:
+    with TestClient(create_app(settings),headers={"X-Requested-With":"ApplyTrack"}) as restarted:
+        assert restarted.post("/api/auth/login",json={"username":"testuser","password":"Test-only-password-123!"}).status_code==200
         assert restarted.get('/api/applications').json()[0]['company'] == 'Updated Demo'
     assert client.delete('/api/applications/'+a['id']).status_code == 204
     assert client.get('/api/applications').json() == []
@@ -105,11 +106,13 @@ def test_render_dev_production_schema_isolation(settings, monkeypatch, payload):
             monkeypatch.setenv('DB_SCHEMA',schema)
             env={**os.environ,'DATABASE_URL':settings.database_url,'DB_SCHEMA':schema}
             subprocess.run([sys.executable,'-m','alembic','upgrade','head'],env=env,check=True,capture_output=True)
-            with TestClient(create_app(settings)) as app:
+            with TestClient(create_app(settings),headers={"X-Requested-With":"ApplyTrack"}) as app:
+                assert app.post("/api/auth/register",json={"username":"SchemaUser","password":"Test-only-password-123!"}).status_code==201
                 assert app.get('/api/applications').json()==[]
                 if index==0: assert app.post('/api/applications',json=payload).status_code==201
         monkeypatch.setenv('DB_SCHEMA',schemas[0])
-        with TestClient(create_app(settings)) as app:
+        with TestClient(create_app(settings),headers={"X-Requested-With":"ApplyTrack"}) as app:
+            assert app.post("/api/auth/login",json={"username":"SchemaUser","password":"Test-only-password-123!"}).status_code==200
             assert len(app.get('/api/applications').json())==1
     finally:
         monkeypatch.delenv('DB_SCHEMA',raising=False)

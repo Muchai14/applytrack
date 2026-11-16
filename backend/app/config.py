@@ -9,6 +9,7 @@ class Settings:
     fault_enabled: bool = os.getenv("ENABLE_FAULT_TRIGGER", "false").lower() == "true"
     release_id: str = os.getenv("RELEASE_ID", os.getenv("RENDER_GIT_COMMIT", "local"))
     frontend_dir: str = os.getenv("FRONTEND_DIR", "dist")
+    public_origin: str = os.getenv("PUBLIC_ORIGIN", os.getenv("RENDER_EXTERNAL_URL", ""))
     seed_demo: bool = os.getenv("SEED_DEMO", "false").lower() == "true"
 
     def __post_init__(self):

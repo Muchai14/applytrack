@@ -50,4 +50,30 @@ HTTP status. The current client does not render server response bodies, avoiding
 accidental display of internal details. The client uses a 10-second timeout.
 Backend should use 404 for missing IDs, 422 for validation, and 503 for temporary
 unavailability, with sanitized error bodies. Frontend base URL must not include
-credentials. Authentication and multi-user access are out of scope.
+credentials. Authentication and per-user application ownership are implemented.
+
+## Username accounts and sessions
+
+- `GET /api/auth/me` → `{user: {id, username} | null}`.
+- `POST /api/auth/register` with `{username, password}` → 201 `{user}` and session cookie.
+- `POST /api/auth/login` with `{username, password}` → 200 `{user}` and rotated cookie.
+- `POST /api/auth/logout` → 204 and server-side session invalidation.
+
+Usernames match `[A-Za-z0-9_]{3,24}` and are unique case-insensitively. Registration
+passwords require 12–128 characters. Cookies are HttpOnly, SameSite=Lax and Secure
+on hosted HTTPS. Sessions expire after seven days. Responses are `Cache-Control: no-store`.
+All browser mutations require `X-Requested-With: ApplyTrack`; an Origin, when
+present, must match the configured public origin. No cross-origin CORS is enabled.
+
+Private API routes require a session. Another user's record ID returns 404.
+CSV source IDs are scoped to the authenticated owner. Caller-supplied owner IDs
+are rejected. An expired/revoked session returns 401; the frontend returns to sign-in
+and discards the previous account's query cache.
+
+The management bearer credential is read-only for `/api/dashboard` and sanitized
+`/api/incidents`; dashboard monitoring sees only unowned synthetic/legacy records.
+It cannot write applications or authenticate as a customer.
+
+Authentication returns generic 401 errors for unknown/wrong credentials, 409 for
+a taken username, 422 for invalid input and 429 for throttled attempts. No account
+recovery or password-reset endpoint exists in this version.

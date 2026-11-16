@@ -19,6 +19,7 @@ from .config import Settings
 from .db import Application, Incident, State, as_dict, connect, utcnow
 from .domain import ApplicationInput, metrics, preview_import
 from . import telemetry
+from .auth import auth_router, csrf, session_user
 
 class CsvBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -40,13 +41,14 @@ def create_app(settings=None):
             connection.execute(text("SELECT 1"))
         yield
         engine.dispose()
-    app = FastAPI(title="ApplyTrack", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="ApplyTrack", version="0.3.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
 
     @app.exception_handler(RequestValidationError)
     async def invalid(request, exc):
-        return JSONResponse(status_code=422, content={"detail": "Invalid input. Check required fields and dates."})
+        detail = "Check the username format and password length." if request.url.path.startswith("/api/auth/") else "Invalid input. Check required fields and dates."
+        return JSONResponse(status_code=422, content={"detail": detail})
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
@@ -64,6 +66,8 @@ def create_app(settings=None):
                 response = await call_next(request)
                 status_code = response.status_code
                 response.headers["X-Trace-ID"] = trace_id
+                if request.url.path.startswith("/api/"):
+                    response.headers["Cache-Control"] = "no-store"
                 return response
             finally:
                 route = getattr(request.scope.get("route"), "path", "unmatched")
@@ -88,16 +92,36 @@ def create_app(settings=None):
         if not settings.ops_token or not hmac.compare_digest(supplied, "Bearer "+settings.ops_token):
             raise HTTPException(401, "Management authorization required")
 
-    def get_application(db, app_id):
+    app.include_router(auth_router(settings, session))
+
+    def current_user(request: Request, db=Depends(session)):
+        user = session_user(request, db)
+        if user is None:
+            raise HTTPException(401, "Sign in required")
+        if request.method not in ("GET", "HEAD"):
+            csrf(request, settings)
+        return user
+
+    def read_principal(request: Request, db=Depends(session)):
+        supplied = request.headers.get("authorization", "")
+        if settings.ops_token and hmac.compare_digest(supplied, "Bearer "+settings.ops_token):
+            # Read-only monitoring sees only unowned synthetic/legacy rows.
+            return None
+        return current_user(request, db)
+
+    def application_dict(row):
+        return {k: v for k, v in as_dict(row).items() if k != "owner_id"}
+
+    def get_application(db, app_id, user):
         row = db.get(Application, app_id)
-        if row is None:
+        if row is None or row.owner_id != user.id:
             raise HTTPException(404, "Application not found")
         return row
 
     @app.get("/health")
     def health(db=Depends(session)):
         db.execute(text("SELECT 1"))
-        return {"status": "ok", "release_id": settings.release_id}
+        return {"status": "ok", "release_id": settings.release_id, "auth_version": 1}
 
     @app.get("/metrics")
     def prometheus(request: Request):
@@ -106,21 +130,21 @@ def create_app(settings=None):
         return Response(generate_latest(telemetry.registry), media_type="text/plain; version=0.0.4")
 
     @app.get("/api/applications")
-    def applications(db=Depends(session)):
+    def applications(db=Depends(session), user=Depends(current_user)):
         with tracer.start_as_current_span("db.applications.list", record_exception=False):
-            return [as_dict(a) for a in db.scalars(select(Application).order_by(Application.updated_at.desc()))]
+            return [application_dict(a) for a in db.scalars(select(Application).where(Application.owner_id == user.id).order_by(Application.updated_at.desc()))]
 
     @app.post("/api/applications", status_code=201)
-    def create(data: ApplicationInput, db=Depends(session)):
+    def create(data: ApplicationInput, db=Depends(session), user=Depends(current_user)):
         now = utcnow()
-        row = Application(**data.model_dump(mode="json"), id=str(uuid.uuid4()), created_at=now, updated_at=now, status_changed_at=data.applied_at.isoformat())
+        row = Application(**data.model_dump(mode="json"), id=str(uuid.uuid4()), owner_id=user.id, created_at=now, updated_at=now, status_changed_at=data.applied_at.isoformat())
         db.add(row)
         db.commit()
-        return as_dict(row)
+        return application_dict(row)
 
     @app.patch("/api/applications/{app_id}")
-    def edit(app_id: str, data: ApplicationInput, db=Depends(session)):
-        row = get_application(db, app_id)
+    def edit(app_id: str, data: ApplicationInput, db=Depends(session), user=Depends(current_user)):
+        row = get_application(db, app_id, user)
         now = utcnow()
         if row.status != data.status:
             row.status_changed_at = now
@@ -128,17 +152,17 @@ def create_app(settings=None):
             setattr(row, key, value)
         row.updated_at = now
         db.commit()
-        return as_dict(row)
+        return application_dict(row)
 
     @app.delete("/api/applications/{app_id}", status_code=204)
-    def delete(app_id: str, db=Depends(session)):
-        db.delete(get_application(db, app_id))
+    def delete(app_id: str, db=Depends(session), user=Depends(current_user)):
+        db.delete(get_application(db, app_id, user))
         db.commit()
         return Response(status_code=204)
 
     @app.post("/api/applications/{app_id}/follow-ups", status_code=204)
-    def follow_up(app_id: str, db=Depends(session)):
-        row = get_application(db, app_id)
+    def follow_up(app_id: str, db=Depends(session), user=Depends(current_user)):
+        row = get_application(db, app_id, user)
         if row.status not in ("Applied", "Interview"):
             raise HTTPException(422, "Only open applications can receive follow-ups")
         row.last_followed_up_at = row.updated_at = utcnow()
@@ -146,35 +170,35 @@ def create_app(settings=None):
         return Response(status_code=204)
 
     @app.get("/api/dashboard")
-    def dashboard(db=Depends(session)):
+    def dashboard(db=Depends(session), user=Depends(read_principal)):
         fault = db.get(State, "dashboard_fault")
         if fault and fault.value.get("enabled") and settings.fault_enabled:
             raise HTTPException(503, "Dev fault injection active")
         with tracer.start_as_current_span("db.dashboard.read", record_exception=False):
-            return metrics([as_dict(a) for a in db.scalars(select(Application))])
+            return metrics([application_dict(a) for a in db.scalars(select(Application).where(Application.owner_id == (user.id if user else None)))])
 
     @app.post("/api/imports/preview")
-    def preview(data: CsvBody, db=Depends(session)):
-        return preview_import(data.csv, [as_dict(a) for a in db.scalars(select(Application))])
+    def preview(data: CsvBody, db=Depends(session), user=Depends(current_user)):
+        return preview_import(data.csv, [application_dict(a) for a in db.scalars(select(Application).where(Application.owner_id == user.id))])
 
     @app.post("/api/imports")
-    def import_csv(data: CsvBody, db=Depends(session)):
+    def import_csv(data: CsvBody, db=Depends(session), user=Depends(current_user)):
         # Serialize imports across workers, including the initially empty database.
         if engine.dialect.name == "postgresql":
             db.execute(text("SELECT pg_advisory_xact_lock(6420091)"))
-        existing = [as_dict(a) for a in db.scalars(select(Application))]
+        existing = [application_dict(a) for a in db.scalars(select(Application).where(Application.owner_id == user.id))]
         result = preview_import(data.csv, existing)
         if result["errors"]:
             raise HTTPException(422, "Import blocked: fix all validation errors first")
         ids = {a["source_id"] for a in existing if a.get("source_id")}
         for row in result["rows"]:
             if row["source_id"] not in ids:
-                db.add(Application(**row))
+                db.add(Application(**row, owner_id=user.id))
         db.commit()
         return result
 
     @app.get("/api/incidents")
-    def incidents(db=Depends(session)):
+    def incidents(db=Depends(session), user=Depends(read_principal)):
         return [{k: v for k, v in as_dict(i).items() if k not in ("attempted", "active_key")} for i in db.scalars(select(Incident).order_by(Incident.detected_at.desc()).limit(100))]
 
     if settings.fault_enabled and settings.environment in ("dev", "test"):

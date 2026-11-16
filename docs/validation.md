@@ -69,3 +69,24 @@ ChatGPT login. Their health endpoints reported tested commit
 Hosted request logs exist in Render. Remote trace/log collection and the optional
 external cloud checker are not configured; the correlated stored telemetry and
 autonomous recovery evidence is from the complete local Compose stack.
+
+## Account extension validation (issue #5)
+
+The account changes add registration/login/logout, per-user query caches and
+server ownership checks. The historical test counts/releases above predate this
+extension. Current account test/deployment results are recorded separately after
+verification; planned checks are not marked as passing.
+
+### Executed account checks
+
+`make test` passed: 45 frontend/domain/API tests, 34 Python/real-PostgreSQL tests,
+and 1 Chromium full-stack flow (80 total). The browser flow registers a username,
+creates/edits a persisted application, reloads, verifies identity, logs out across
+two tabs and signs in again case-insensitively. Backend tests cover salted hashes,
+revoked/expired sessions, cookie security, CSRF, rate limits, cross-account access
+and per-owner CSV source IDs. The migration preserves unowned legacy records.
+
+The session and ownership tests use disposable test credentials only. Passwords,
+usernames and raw session tokens were verified absent from application telemetry.
+Cloud rollout of this account extension is recorded after verification; historical
+release screenshots above still show the earlier shared demo.

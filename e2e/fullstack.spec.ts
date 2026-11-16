@@ -1,7 +1,15 @@
 import { test, expect } from '@playwright/test';
 test('UI creates an application through the real API and PostgreSQL, surviving refresh',async({page,request})=>{
   await page.goto('/');
+  await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await page.getByRole('button',{name:'Sign up',exact:true}).click();
+  const username='Browser_'+Date.now();
+  await page.getByLabel('Username',{exact:true}).fill(username);
+  await page.getByLabel('Password',{exact:true}).fill('Browser-test-only-password-123!');
+  await page.getByLabel('Confirm password',{exact:true}).fill('Browser-test-only-password-123!');
+  await page.getByRole('button',{name:'Create account',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Your application pipeline'})).toBeVisible();
+  await expect(page.getByLabel(`Signed in as ${username}`)).toBeVisible();
   await expect(page.getByText('Demo data',{exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Add application',exact:true}).click();
   const dialog=page.getByRole('dialog');
@@ -10,7 +18,7 @@ test('UI creates an application through the real API and PostgreSQL, surviving r
   await dialog.getByLabel('Role *',{exact:true}).fill('Integration Engineer');
   await dialog.getByRole('button',{name:'Add application',exact:true}).click();
   await expect(dialog).not.toBeVisible();
-  const rows=await (await request.get('/api/applications')).json();
+  const rows=await (await page.request.get('/api/applications')).json();
   const record=rows.find((r:{company:string})=>r.company===company);
   expect(record).toBeTruthy();
   await page.getByRole('button',{name:'Applications',exact:true}).click();
@@ -23,8 +31,19 @@ test('UI creates an application through the real API and PostgreSQL, surviving r
   await page.reload();
   await page.getByRole('textbox',{name:'Search applications'}).fill(company);
   await expect(page.getByRole('cell',{name:'Rejected',exact:true})).toBeVisible();
-  const persisted=await (await request.get('/api/applications')).json();
+  const persisted=await (await page.request.get('/api/applications')).json();
   expect(persisted.find((r:{id:string})=>r.id===record.id).status).toBe('Rejected');
   await page.screenshot({path:test.info().outputPath('fullstack.png'),fullPage:true});
-  await request.delete('/api/applications/'+record.id);
+  await page.request.delete('/api/applications/'+record.id,{headers:{'X-Requested-With':'ApplyTrack'}});
+  const secondTab=await page.context().newPage();
+  await secondTab.goto('/');
+  await expect(secondTab.getByLabel(`Signed in as ${username}`)).toBeVisible();
+  await page.getByRole('button',{name:'Log out',exact:true}).click();
+  await expect(secondTab.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await secondTab.close();
+  await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await page.getByLabel('Username',{exact:true}).fill(username.toLowerCase());
+  await page.getByLabel('Password',{exact:true}).fill('Browser-test-only-password-123!');
+  await page.getByRole('button',{name:'Log in',exact:true}).click();
+  await expect(page.getByLabel(`Signed in as ${username}`)).toBeVisible();
 });

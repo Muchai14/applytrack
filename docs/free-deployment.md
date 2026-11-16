@@ -91,7 +91,8 @@ python3 scripts/render_deploy.py rollback --deploy-id dep-PREVIOUS_ID
 Use an actual retained deployment ID from Render; the placeholder is not runnable.
 This reuses the previous deployment artifact rather than rebuilding main. Pause dev auto-deploys before a rollback drill and avoid new pushes during the drill.
 Production auto-deploys are already disabled.
-Migrations are additive; rollback is not database restoration. Export important
+Migrations preserve records; only account-compatible images may be restored after
+migration 0002. Rollback is not database restoration. Export important
 records before the free database expires.
 
 ## Telemetry
@@ -101,3 +102,12 @@ For hosted telemetry, configure an authenticated collector separately using
 `OTEL_EXPORTER_OTLP_ENDPOINT`. Never expose the local unauthenticated collector
 on the public internet. Hosted collection is not claimed until verified. A
 recorded local dashboard/trace/log demonstration can accompany the deployment.
+
+## Account release upgrade
+
+The account feature uses the existing PostgreSQL instance and no paid identity
+provider. Alembic migration 0002 preserves the old unowned demo rows. New accounts
+are isolated and empty; usernames/accounts in dev and production are also separate.
+Render automatically supplies the HTTPS public origin used for cookie/CSRF checks.
+Never roll back to a pre-account image after users register. The valid rollback
+baseline must contain ownership checks and the account-security image label.

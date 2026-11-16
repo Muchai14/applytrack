@@ -35,7 +35,7 @@ class DiagnosticTools:
 
     def check(self):
         try:
-            r = self.client.get('/api/dashboard', timeout=5)
+            r = self.client.get('/api/dashboard', headers=self.headers, timeout=5)
             tid = r.headers.get('x-trace-id', '')
             tid = tid if len(tid) == 32 and all(c in '0123456789abcdef' for c in tid) else ''
             if r.status_code != 200:

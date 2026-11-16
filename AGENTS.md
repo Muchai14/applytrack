@@ -1,6 +1,6 @@
 # ApplyTrack agent context
 
-ApplyTrack is a single-user job application tracker. The user authorized upgrading
+ApplyTrack is a job application tracker with username accounts and per-user records. The user authorized upgrading
 the original mock frontend into a full-stack course project, using free services
 only. Do not activate paid hosting, inference, or account upgrades.
 
@@ -24,3 +24,9 @@ Before release run `make test`; it includes frontend tests, backend unit/real-DB
 integration tests and a browser flow. Inspect telemetry and exercise the dev
 incident drill for operational changes. Do not claim deployment/CD/telemetry was
 verified merely because a configuration file exists; link actual evidence.
+
+Account scope was explicitly authorized in issue #5. All application reads/writes
+and imports must enforce ownership on the server. No passwords or raw session
+tokens in storage artifacts, logs, traces or localStorage. The availability checker
+uses a read-only management credential and sees only unowned synthetic records.
+Do not roll back to pre-account images after account creation; they bypass ownership.

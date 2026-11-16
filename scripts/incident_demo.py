@@ -7,7 +7,7 @@ import urllib.request
 base=os.environ.get('API_URL','http://127.0.0.1:8000').rstrip('/')
 token=os.environ.get('OPS_TOKEN','local-demo-ops-token-change-before-hosting')
 def get(path):
-    with urllib.request.urlopen(base+path,timeout=10) as r: return json.load(r)
+    with urllib.request.urlopen(urllib.request.Request(base+path,headers={"Authorization":"Bearer "+token}),timeout=10) as r: return json.load(r)
 def main():
     before={i['id'] for i in get('/api/incidents')}
     req=urllib.request.Request(base+'/ops/fault',data=b'{"enabled":true}',headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
