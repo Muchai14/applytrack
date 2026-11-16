@@ -46,3 +46,25 @@ dashboard to 200. PostgreSQL kept 3 applications before and after; no database
 was dropped. See [evidence/rollback.json](evidence/rollback.json).
 
 Stored telemetry query results are in [evidence/telemetry.json](evidence/telemetry.json).
+
+## Verified public release and delivery
+
+The dev and production Render Free services are publicly reachable without a
+ChatGPT login. Their health endpoints reported tested commit
+`9fdfbef9c9437fca3b8bb36e2ba1a6c793395417`.
+
+- [Release CI](https://github.com/Muchai14/applytrack/actions/runs/43926500983) passed.
+- Render recorded a native **Auto-Deploy** event for dev after checks passed.
+- A record written before that deployment remained in PostgreSQL afterwards.
+- Production stayed on the previous release until a specific tested commit was
+  manually selected; Render recorded **Manually deployed via Dashboard** and Live.
+- Dev has 4 records and production 3, demonstrating independent schema contents.
+- The public production dashboard was opened in a browser and rendered real data.
+
+[Public application screenshot](evidence/public-application.jpg) ·
+[Grafana screenshot](evidence/observability.jpg) ·
+[Deployment metadata](evidence/deployment.json)
+
+Hosted request logs exist in Render. Remote trace/log collection and the optional
+external cloud checker are not configured; the correlated stored telemetry and
+autonomous recovery evidence is from the complete local Compose stack.

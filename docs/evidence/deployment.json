@@ -15,5 +15,18 @@
   "production_dev_diagnostics_status": 404,
   "ci_url": "https://github.com/Muchai14/applytrack/actions/runs/43925131571",
   "ci_result": "success",
-  "note": "Native dev CI-gated deployment and manual production release are verified separately from the initial Blueprint deployment."
+  "verified_release": "9fdfbef9c9437fca3b8bb36e2ba1a6c793395417",
+  "release_ci_url": "https://github.com/Muchai14/applytrack/actions/runs/43926500983",
+  "release_ci_result": "success",
+  "dev_auto_deploy_id": "dep-dbtkg4u417fc73e1e2lg",
+  "production_manual_deploy_id": "dep-dbtkgsk9v7es7399srig",
+  "dev_deploy_trigger": "Auto-Deploy after CI checks passed",
+  "production_deploy_trigger": "Manually deployed a specific tested commit via Dashboard",
+  "dev_record_survived_redeploy": true,
+  "dev_record_count_after_redeploy": 4,
+  "production_record_count": 3,
+  "schema_isolation_observed": true,
+  "public_ui_viewed": true,
+  "cloud_telemetry_configured": false,
+  "cloud_checker_enabled": false
 }
