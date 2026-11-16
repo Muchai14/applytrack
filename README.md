@@ -32,7 +32,8 @@ docker compose up --build -d --wait
 Open **http://localhost:8080**. The frontend calls FastAPI, which persists data in
 **PostgreSQL**. The default application does not use browser storage. Database
 migrations run on startup. New accounts start with an empty workspace. CRUD
-changes survive API/container restarts and are shared across browsers.
+changes survive API/container restarts and are available across browsers after
+signing in to the same account.
 
 - Application: http://localhost:8080
 - API health: http://localhost:8000/health

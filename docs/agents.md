@@ -24,3 +24,7 @@ Runtime agents are distinct from development roles:
 
 Runtime remediation is deterministic and does not depend on an LLM. Human review
 is required for unsupported operational decisions and production rollback.
+
+Issue #5 authorized the account extension before implementation. It records
+registration/session/ownership acceptance criteria, the implementation commit,
+test-role handoff and actual free dev/production rollout evidence.

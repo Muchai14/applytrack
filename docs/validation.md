@@ -90,3 +90,25 @@ The session and ownership tests use disposable test credentials only. Passwords,
 usernames and raw session tokens were verified absent from application telemetry.
 Cloud rollout of this account extension is recorded after verification; historical
 release screenshots above still show the earlier shared demo.
+
+### Verified account release
+
+Account source `92db0d10223ad45dbc8cc614f3dcaa23abaa7f97` passed
+[full-stack CI](https://github.com/Muchai14/applytrack/actions/runs/43939744763),
+auto-deployed to dev and was manually deployed to production. Both health endpoints
+reported `auth_version=1` and that source commit.
+
+Disposable test accounts verified online registration (201), Secure/HttpOnly/
+SameSite cookies, empty new workspaces, case-insensitive login, logout revocation,
+persistence across logout/login and blocked cross-account reads/writes (404).
+Temporary test applications were removed; no personal account or password was
+created on the author's behalf. The production signup UI was opened in a browser.
+
+[Account evidence](evidence/accounts.json) ·
+[Signup screenshot](evidence/account-signup.jpg) ·
+[Post-auth local recovery drill](evidence/account-incident-recovery.json)
+
+The post-auth recovery drill confirms the independent checker still repairs the
+known dev fault using its read-only synthetic monitoring scope. Cloud continuous
+monitoring remains optional/unconfigured. Free database retention and the absence
+of a password-reset flow still apply.

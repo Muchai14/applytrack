@@ -17,8 +17,8 @@ Read these modular docs before working:
 Use English for UI and docs, synthetic records for demos, and no secrets in Git,
 issues or telemetry. Components access data only through `src/api/`; FastAPI is
 authoritative for business validation and writes. PostgreSQL is mandatory in
-integration tests; test fixtures refuse non-test database names. Use additive
-migrations. Production must never expose fault injection or arbitrary repair tools.
+integration tests; test fixtures refuse non-test database names. Use data-preserving, versioned
+migrations and respect the account security baseline introduced in 0002. Production must never expose fault injection or arbitrary repair tools.
 
 Before release run `make test`; it includes frontend tests, backend unit/real-DB
 integration tests and a browser flow. Inspect telemetry and exercise the dev

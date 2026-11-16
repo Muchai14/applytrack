@@ -1,0 +1,13 @@
+{
+  "id": "INC-382198791153",
+  "environment": "dev",
+  "route": "/api/dashboard",
+  "detected_at": "2026-11-16T19:29:22.011745+00:00",
+  "resolved_at": "2026-11-16T19:29:24.053765+00:00",
+  "status": "Resolved",
+  "diagnosis": "Authenticated diagnostics confirmed the dev dashboard fault flag was enabled.",
+  "action": "Responder disabled the allowlisted dev fault flag. No application records changed.",
+  "verification": "Two consecutive external dashboard checks returned valid HTTP 200 responses.",
+  "release_id": "local",
+  "trace_id": "a5af0f36560b722238632cbb8a4b9c73"
+}

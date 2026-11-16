@@ -18,5 +18,39 @@
   ],
   "migration": "0002",
   "legacy_records": "preserved unowned and hidden from normal accounts",
-  "cloud_verified": false
+  "cloud_verified": true,
+  "source_commit": "92db0d10223ad45dbc8cc614f3dcaa23abaa7f97",
+  "ci_url": "https://github.com/Muchai14/applytrack/actions/runs/43939744763",
+  "ci_result": "success",
+  "dev_verified": {
+    "url": "https://applytrack-dev.onrender.com",
+    "release_id": "92db0d10223ad45dbc8cc614f3dcaa23abaa7f97",
+    "auth_version": 1,
+    "registration": 201,
+    "cookie_flags_verified": true,
+    "new_workspace_empty": true,
+    "username_verified": true,
+    "case_insensitive_login": true,
+    "cross_account_reads_and_writes_blocked": true,
+    "logout_revoked_session": true,
+    "record_survived_logout_login": true,
+    "temporary_application_removed": true
+  },
+  "dev_deploy_id": "dep-dbtljmdbedkc73fvscfg",
+  "production_verified": {
+    "url": "https://applytrack-production-jvw0.onrender.com",
+    "release_id": "92db0d10223ad45dbc8cc614f3dcaa23abaa7f97",
+    "auth_version": 1,
+    "registration": 201,
+    "cookie_flags_verified": true,
+    "new_workspace_empty": true,
+    "username_verified": true,
+    "case_insensitive_login": true,
+    "cross_account_reads_and_writes_blocked": true,
+    "logout_revoked_session": true,
+    "record_survived_logout_login": true,
+    "temporary_application_removed": true
+  },
+  "public_signup_ui_viewed": true,
+  "personal_account_created_for_author": false
 }

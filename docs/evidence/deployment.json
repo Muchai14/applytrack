@@ -28,5 +28,11 @@
   "schema_isolation_observed": true,
   "public_ui_viewed": true,
   "cloud_telemetry_configured": false,
-  "cloud_checker_enabled": false
+  "cloud_checker_enabled": false,
+  "account_extension": {
+    "source_commit": "92db0d10223ad45dbc8cc614f3dcaa23abaa7f97",
+    "auth_version": 1,
+    "evidence": "accounts.json",
+    "note": "Earlier entries describe the pre-account deployment milestone."
+  }
 }
