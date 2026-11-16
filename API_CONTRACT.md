@@ -1,7 +1,7 @@
-# Proposed FastAPI contract
+# FastAPI contract
 
 All endpoints below use JSON. Dates are `YYYY-MM-DD`; timestamps are ISO 8601 UTC.
-Input validation must also be implemented on the server. See `src/types.ts` for
+Inputs are validated on the server. See `src/types.ts` for
 complete frontend types. The FastAPI implementation is in `backend/app/main.py`.
 
 | Method | Route                             | Request                   | Success response |

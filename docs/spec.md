@@ -152,10 +152,10 @@ release ID, and a trace ID when available, with no application records.
 ## 7. Responder and repeatable alert trigger
 
 The responder runs independently of the application and receives authenticated
-alerts. A constrained agent uses diagnostic tools to inspect checker results,
-health, recent sanitized errors, and release metadata. Tool authorization is
-enforced in code; model output cannot expand the allowed actions. A deterministic
-policy check permits or rejects the proposed action before execution.
+alerts. A constrained policy-based agent inspects checker results and authenticated dev
+diagnostics, including the fault flag and release metadata. Tool authorization is
+enforced in code; diagnostic input cannot expand the allowed actions. A
+deterministic policy check permits or rejects the action before execution.
 
 Required dev demonstration:
 
@@ -176,8 +176,7 @@ escalation instead of repeated actions. Production rollback remains a documented
 operator action in the MVP.
 
 Incident reports are persisted and visible in a simple incident view; an optional
-GitHub issue adapter may publish sanitized reports. An agent/model outage also
-leaves a visible unresolved incident. Tests use constrained tool adapters; the demo includes a real autonomous policy-based responder run. No paid model is required.
+GitHub issue adapter may publish sanitized reports. An interrupted responder leaves a visible unresolved incident. Tests use constrained tool adapters; the demo includes a real autonomous policy-based responder run. No paid model is required.
 
 ## 8. Testing and evidence
 

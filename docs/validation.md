@@ -33,8 +33,9 @@ requests. The sanitized persisted report is in
 The runtime responder is deterministic policy-based automation, not an LLM. No
 concurrent development agents or independent human reviewer are claimed.
 
-Cloud deployment, native CI-gated CD and hosted telemetry must be verified
-separately. Configuration files alone are not evidence of an active cloud service.
+Public deployment and native CI-gated CD were verified as recorded below.
+Hosted telemetry remains unconfigured. Configuration files alone are not evidence
+of an active cloud service.
 The older private Sites URL is a frontend-only mock milestone, not this full-stack
 deployment. Consult the release evidence for actual hosted URLs and status.
 
